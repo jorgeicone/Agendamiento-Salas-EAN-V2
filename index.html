@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Room Planner - Legacy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .calendar-grid { display: grid; grid-template-columns: 100px repeat(5, 1fr); }
+        .time-slot { border-bottom: 1px solid #334155; height: 80px; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #475569; }
+        .room-card { transition: all 0.3s ease; cursor: pointer; }
+        .room-card:hover { transform: scale(1.02); filter: brightness(1.2); }
+        /* Colores por sala */
+        .bg-l706 { background: #0ea5e9; border-left: 4px solid #0284c7; }
+        .bg-l717 { background: #8b5cf6; border-left: 4px solid #7c3aed; }
+        .bg-l721 { background: #10b981; border-left: 4px solid #059669; }
+        .bg-l505 { background: #f59e0b; border-left: 4px solid #d97706; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+                    Legacy Room Assistant
+                </h1>
+                <p class="text-slate-400">Dashboard Inteligente de Investigadores</p>
+            </div>
+            <div class="flex gap-4">
+                <label class="cursor-pointer bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-full font-semibold transition">
+                    + Subir Reserva (IA)
+                    <input type="file" id="ai-uploader" class="hidden" accept="image/*" onchange="processImage(event)">
+                </label>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <aside class="lg:col-span-1 space-y-6">
+                <div class="glass-panel p-6 rounded-2xl">
+                    <h3 class="text-emerald-400 font-semibold mb-4 flex items-center gap-2">
+                        <span>🤖</span> Estado de la IA
+                    </h3>
+                    <div id="ai-status" class="text-sm text-slate-300 italic">
+                        Esperando captura de pantalla...
+                    </div>
+                </div>
+                
+                <div class="glass-panel p-6 rounded-2xl">
+                    <h3 class="font-semibold mb-4">Salas Activas</h3>
+                    <ul class="space-y-3 text-sm" id="room-list">
+                        </ul>
+                </div>
+            </aside>
+
+            <main class="lg:col-span-3 glass-panel rounded-3xl overflow-hidden">
+                <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+                    <h2 id="current-week" class="text-xl font-semibold">Semana: Abril 13 - 17, 2026</h2>
+                    <div class="flex gap-2">
+                        <button class="p-2 hover:bg-slate-700 rounded-lg">←</button>
+                        <button class="p-2 hover:bg-slate-700 rounded-lg">→</button>
+                    </div>
+                </div>
+
+                <div class="calendar-grid bg-slate-900/50">
+                    <div class="time-slot border-r border-slate-700"></div>
+                    <div class="p-4 text-center border-r border-slate-700 font-semibold uppercase text-xs text-slate-400">Lun 13</div>
+                    <div class="p-4 text-center border-r border-slate-700 font-semibold uppercase text-xs text-slate-400">Mar 14</div>
+                    <div class="p-4 text-center border-r border-slate-700 font-semibold uppercase text-xs text-slate-400">Mié 15</div>
+                    <div class="p-4 text-center border-r border-slate-700 font-semibold uppercase text-xs text-slate-400">Jue 16</div>
+                    <div class="p-4 text-center font-semibold uppercase text-xs text-slate-400">Vie 17</div>
+
+                    <div id="calendar-body" class="contents">
+                        </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Simulación de Base de Datos
+        let reservations = JSON.parse(localStorage.getItem('room_reservations')) || [
+            { day: 2, hour: 16, duration: 2, room: 'L721', user: 'Jorge Hugo' },
+            { day: 2, hour: 18, duration: 2, room: 'L717', user: 'Jorge Hugo' },
+            { day: 3, hour: 13, duration: 3, room: 'L706', user: 'Jorge Hugo' }
+        ];
+
+        function initCalendar() {
+            const body = document.getElementById('calendar-body');
+            body.innerHTML = '';
+            
+            for (let h = 8; h <= 20; h++) {
+                const hourLabel = h > 12 ? `${h-12} PM` : `${h} AM`;
+                body.innerHTML += `<div class="time-slot border-r border-slate-700 flex items-start justify-center text-[10px] text-slate-500 pt-2">${hourLabel}</div>`;
+                
+                for (let d = 1; d <= 5; d++) {
+                    const res = reservations.find(r => r.day === d && r.hour === h);
+                    let content = '';
+                    if (res) {
+                        content = `
+                            <div class="room-card bg-${res.room.toLowerCase()} p-2 m-1 rounded-md text-[10px] h-[${res.duration*70}px] absolute z-10 w-[15%] shadow-lg">
+                                <strong>${res.room}</strong><br>${res.user}
+                            </div>
+                        `;
+                    }
+                    body.innerHTML += `<div class="time-slot border-r border-slate-700 relative">${content}</div>`;
+                }
+            }
+            saveData();
+        }
+
+        async function processImage(event) {
+            const status = document.getElementById('ai-status');
+            status.innerText = "🤖 Analizando imagen con IA...";
+            
+            // Simulación de OCR (En una app real aquí llamaríamos a una API de Visión)
+            setTimeout(() => {
+                // Aquí simulamos que la IA "leyó" la nueva imagen (ej. la de Viernes 17, 4pm)
+                const newRes = { day: 5, hour: 16, duration: 3, room: 'L505', user: 'Jorge Hugo' };
+                reservations.push(newRes);
+                initCalendar();
+                status.innerHTML = "✅ <span class='text-emerald-400'>¡Nueva reserva detectada!</span> Sala L505 agendada para el Viernes.";
+            }, 2000);
+        }
+
+        function saveData() {
+            localStorage.setItem('room_reservations', JSON.stringify(reservations));
+        }
+
+        initCalendar();
+    </script>
+</body>
+</html>
